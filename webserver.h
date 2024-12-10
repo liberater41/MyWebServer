@@ -15,6 +15,8 @@ public:
     void init(string ip,string port,string username,string password,string database,int max_con,
             int thread_num,int max_req,
             string filename,int log_buf_size,int queue_size,int Logwrite);
+
+    void start();
 public:
     
 private:
@@ -28,6 +30,11 @@ private:
 
     //日志
     Log *log;
+
+    //网络通信
+    int m_listen_fd;
+    string m_ip;
+    string m_port;
 };
 
 #endif

@@ -9,4 +9,6 @@ int main(int argc,char** argv){
     server->init(config.ip,config.port,config.username,config.password,config.database,config.max_con,
             config.thread_num,config.max_req,
             config.filename,config.log_buf_size,config.queue_size,config.Logwrite);
+
+    server->start();
 }
