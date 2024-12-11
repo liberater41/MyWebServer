@@ -7,7 +7,7 @@
 using namespace std;
 
 WebServer::WebServer(){
-    ;
+    
 }
 
 void WebServer::init(string ip,string port,string username,string password,string database,int max_con,
@@ -72,7 +72,51 @@ void WebServer::start(){
     if(listen(m_listen_fd,3)<0){
         Log::LOG_ERROR("listen fail");
     }
+    
+    
+    
+    m_epoll_fd=epoll_create(3);
+    epoll_event listen_event;
+    listen_event.events=EPOLLIN;
+    listen_event.data.fd=m_listen_fd;
+    epoll_ctl(m_epoll_fd,EPOLL_CTL_ADD,m_listen_fd,&listen_event);
+
     Log::LOG_INFO("server is initializing");
+}
+
+void WebServer::loop(){
+    sockaddr_in address_client;
+    socklen_t addlen=sizeof(address_client);
+    while(1){
+        int num_of_fds=epoll_wait(m_epoll_fd,m_events,MAX_CLIENTS,-1);
+        if(num_of_fds<=0){
+            break;
+        }
+        for(int i=0;i<num_of_fds;i++){
+            if(m_events[i].data.fd==m_listen_fd){
+                int client_fd=accept(m_listen_fd,(struct sockaddr *)&address_client,&addlen);
+                if(client_fd<0){
+                    Log::LOG_ERROR("accept client error");
+                    continue;
+                }
+                m_clients[client_fd].init(client_fd);
+
+                epoll_event client_event;
+                client_event.events=EPOLLIN|EPOLLOUT;
+                client_event.data.fd=client_fd;
+                epoll_ctl(m_epoll_fd,EPOLL_CTL_ADD,client_fd,&client_event);
+
+                int port_client = ntohs(address_client.sin_port);
+                cout<<"client "<<port_client<<"is accepted"<<endl;
+                Log::LOG_INFO("client %d is accepted",port_client);
+            }
+            else{
+                if((m_events[i].events & EPOLLIN) && (m_events[i].events & EPOLLOUT)){
+                    m_threadpool->add_req(&m_clients[m_events->data.fd]);
+                }
+            }
+        }
+    }
 }
     
 WebServer::~WebServer(){

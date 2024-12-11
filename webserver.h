@@ -2,8 +2,12 @@
 #define WEBSERVER_H
 
 #include <string>
+#include <sys/epoll.h>
 #include "threadpool/threadpool.h"
+#include "http_con/http_con.h"
 #include "mysql/sql_pool.h"
+
+const int MAX_CLIENTS=10000;
 
 class WebServer{
 public:
@@ -19,6 +23,7 @@ public:
     void log_init();
     void threadpool_init();
     void start();
+    void loop();
 public:
     
 private:
@@ -35,6 +40,7 @@ private:
     //线程池
     int m_thread_num;
     int m_max_req;
+    threadpool<http_con> *m_threadpool;
 
     //日志
     Log *log;
@@ -47,6 +53,13 @@ private:
     int m_listen_fd;
     string m_ip;
     string m_port;
+
+    int m_epoll_fd;
+
+    epoll_event m_events[MAX_CLIENTS];
+
+    http_con m_clients[MAX_CLIENTS];
+
 };
 
 #endif
