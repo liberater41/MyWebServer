@@ -15,7 +15,9 @@ public:
     void init(string ip,string port,string username,string password,string database,int max_con,
             int thread_num,int max_req,
             string filename,int log_buf_size,int queue_size,int Logwrite);
-
+    void con_pool_init();
+    void log_init();
+    void threadpool_init();
     void start();
 public:
     
@@ -25,11 +27,21 @@ private:
 private:        
     //数据库
     Sql_pool *m_con_pool;
+    string m_username;
+    string m_password;
+    string m_database;
+    int m_max_con;
 
     //线程池
+    int m_thread_num;
+    int m_max_req;
 
     //日志
     Log *log;
+    string m_filename;
+    int m_log_buf_size;
+    int m_queue_size;
+    int m_Logwrite;
 
     //网络通信
     int m_listen_fd;

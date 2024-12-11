@@ -8,7 +8,7 @@
 using namespace std;
 
 Log::Log(){
-
+    ;
 }
 
 Log::~Log(){
@@ -17,7 +17,7 @@ Log::~Log(){
     }
 }
 
-void* Log::queue_to_file(){
+void Log::queue_to_file(){
     string t;
     while(m_queuebuffer->pop(t)){
         m_file_mutex.lock();
@@ -33,27 +33,28 @@ bool Log::init(const string& filename,int log_buf_size,int queue_size,int is_asy
         
         m_queuebuffer=new QueueBuffer(queue_size);
         pthread_t tid;
-        pthread_create(&tid,nullptr,queue_to_file_thread,nullptr);
+        int res=pthread_create(&tid,nullptr,queue_to_file_thread,nullptr);
     }
     m_log_buf_size=log_buf_size;
-    m_log_buffer.reserve(m_log_buf_size);
-
+    m_log_buffer.resize(m_log_buf_size);
+   
     time_t t=time(nullptr);
     tm local_time=*localtime(&t);
-
+    
     int pos=filename.find_last_of('/');
     string time_=to_string(local_time.tm_year+1900)+"_"+to_string(local_time.tm_mon+1)+"_"+to_string(local_time.tm_mday)+"_";
     string file_name=filename.substr(0,pos+1)+time_+filename.substr(pos+1);
-
+    
     m_file.open(file_name,ios::out | ios::app);
     if(!m_file.is_open()){
         return false;
     }
     return true;
 } 
-template <typename... Args>
-void Log::write_log(int level,const string& format,Args&&... args){
+
+void Log::write_log(int level,string message){
     timeval now={0,0};
+    gettimeofday(&now, nullptr);
     time_t t=time(nullptr);
     tm local_time=*localtime(&t);
     string time=to_string(local_time.tm_year+1900)+"-"+to_string(local_time.tm_mon+1)+"-"+to_string(local_time.tm_mday)+" "
@@ -78,43 +79,18 @@ void Log::write_log(int level,const string& format,Args&&... args){
         s+="[info]:";
         break;
     }
-    string message=format_string(format,forward<Args>(args)...);
     string buf=time+s+message;
-    if(m_is_async&&!m_queuebuffer->is_full()){
-        m_queuebuffer->push(buf);
+    if(get_instance()->m_is_async&&!get_instance()->m_queuebuffer->is_full()){
+        get_instance()->m_queuebuffer->push(buf);
     }
     else{
-        m_file_mutex.lock();
-        m_file<<s<<endl;
-        m_file_mutex.unlock();
+        get_instance()->m_file_mutex.lock();
+        get_instance()->m_file<<s<<endl;
+        get_instance()->m_file_mutex.unlock();
     }
 }
 
-template <typename... Args>
-void Log::LOG_DEBUG(const string& format,Args&&... args){
-    get_instance()->write_log(0,format,forward<Args>(args)...);
-}
 
-template <typename... Args>
-void Log::LOG_INFO(const string& format,Args&&... args){
-    get_instance()->write_log(1,format,forward<Args>(args)...);
-}
 
-template <typename... Args>
-void Log::LOG_WARN(const string& format,Args&&... args){
-    get_instance()->write_log(2,format,forward<Args>(args)...);
-}
 
-template <typename... Args>
-void Log::LOG_ERROR(const string& format,Args&&... args){
-    get_instance()->write_log(3,format,forward<Args>(args)...);
-}
-
-template <typename... Args>
-string Log:: format_string(const string& format, Args&&... args){
-    size_t size = snprintf(nullptr, 0, format.c_str(), forward<Args>(args)...) + 1;
-    unique_ptr<char[]> buffer(new char[size]);
-    snprintf(buffer.get(), size, format.c_str(), forward<Args>(args)...);
-    return string(buffer.get(), buffer.get() + size - 1);
-}
 

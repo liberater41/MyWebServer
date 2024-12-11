@@ -1,2 +1,2 @@
-server: main.cpp  ./timer/lst_timer.cpp ./http/http_conn.cpp ./log/log.cpp ./CGImysql/sql_connection_pool.cpp  webserver.cpp config.cpp
-	gcc -o server  -g -lpthread -lmysqlclient
+server: main.cpp   ./http_con/http_con.cpp ./log/log.cpp ./mysql/sql_pool.cpp  ./threadpool/threadpool.cpp  webserver.cpp ./config/config.cpp
+	g++ -o server $^ -g -lpthread -lmysqlclient

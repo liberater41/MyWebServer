@@ -12,7 +12,7 @@ void threadpool<T>::init(int thread_num,int max_req){
         Log::LOG_ERROR("thread create error!");
         exit(1);
     }
-    for(int 1=0;i<thread_num;i++){
+    for(int i=0;i<thread_num;i++){
         if(pthread_create(&m_threads[i],nullptr,worker,this)!=0){
             Log::LOG_ERROR("thread create error!");
             exit(1);
@@ -28,8 +28,6 @@ void threadpool<T>::init(int thread_num,int max_req){
 template <typename T>
 threadpool<T>::threadpool(){
     m_req_num=0;
-
-    m_sem(m_req_num);
 }
 
 

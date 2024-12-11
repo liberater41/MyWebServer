@@ -6,7 +6,7 @@ Sql_pool::Sql_pool(){
 }
 
 Sql_pool::~Sql_pool(){
-
+    ;
 }
 
 void Sql_pool::init(string ip,string port,string username,string password,string database,int max_con){
@@ -26,10 +26,12 @@ void Sql_pool::init(string ip,string port,string username,string password,string
             exit(1);
         }
 
-        con=mysql_real_connect(con,ip.c_str(),username.c_str(),password.c_str(),database.c_str(),stoi(port),nullptr,0);
+        con=mysql_real_connect(con,ip.c_str(),username.c_str(),password.c_str(),database.c_str(),3306,nullptr,0);
 
         if(con==nullptr){
             Log::LOG_ERROR("MySQL Connect Error");
+            
+            cout<<"error"<<endl;
             exit(1);
         }
 
