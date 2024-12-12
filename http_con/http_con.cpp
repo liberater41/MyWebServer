@@ -58,19 +58,26 @@ http_con::RESPONSE_MODE http_con::process_read(){
     }
 
     string temp_path=path;
+    if(temp_path[0]=='/'){
+        base_path="root";
+    }
+    if(met==POST){
+        base_path="";
+    }
     string final_path=base_path+temp_path;
+    if(met==GET){
     struct stat buf;
     if(stat(final_path.c_str(),&buf)==0){
-        if(met==GET){
-            resp=GET_REQUEST;
-        }
-        else if(met==POST){
-            resp=POST_REQUEST;
-        }
+        resp=GET_REQUEST;        
     }
     else{
         return NO_RESOURCE;
+    }        
     }
+    else if(met==POST){
+        resp=POST_REQUEST;
+    }
+
 
     
     //解析请求行
@@ -144,11 +151,78 @@ void http_con::response_GET(){
         "Content-Type: "+content_type+"\r\n"
         "Content-Length: "+to_string(file_size)+"\r\n"
         "\r\n";
-      
+
+    char buffer[1024];
+    while (file.read(buffer, sizeof(buffer)) || file.gcount() > 0) {
+        send(m_client_fd,buffer, static_cast<size_t>(file.gcount()),0);
+    }        
+    
 }
 
 void http_con::response_POST(){
+    if(sour_addr=="/login"){
+        handle_login();
+    }
+    
+    
+}
+
+void http_con::handle_login(){
     string content_type=get_content_type(sour_addr);
+
+    string content=req_content;
+    int username_pos=content.find("username=");
+    int password_pos=content.find("password=");
+
+    int username_end=content.find('&',username_pos);
+    int password_end=strlen(content.c_str());
+
+    string username;
+    string password;
+
+    username=content.substr(username_pos+9,username_end-(username_pos+9));
+    password=content.substr(password_pos+9,password_end-(password_pos+9));
+
+
+    //查询数据库
+    string query="SELECT COUNT(*) FROM users WHERE username='"
+                +username+"' AND password='"
+                +password+"';";
+    
+    MYSQL *con=m_sql_pool->get_connection();
+    
+    if(mysql_query(con,query.c_str())){
+        cout<<mysql_error(con);
+    }
+
+    MYSQL_RES* result=mysql_store_result(con);
+    MYSQL_ROW row = mysql_fetch_row(result);
+
+    bool isMatch = false;
+    if (row && std::stoi(row[0]) > 0) {
+        isMatch = true;
+    }
+
+    mysql_free_result(result);
+
+
+    //构造响应
+    string resp_buf;
+    resp_buf="HTTP/1.1 200 OK\r\n"
+            "Content-Type: "+content_type+"\r\n"
+            "Content-Length: ";
+    
+    send(m_client_fd,resp_buf.c_str(),resp_buf.length(),0);
+
+    string body;
+    if(isMatch){
+        body="登录成功";
+    }
+    else{
+        body="用户名或密码错误";
+    }
+    body=to_string(body.size())+"\r\n\r\n"+body;
+    send(m_client_fd,body.c_str(),body.length(),0);
 }
 
 void http_con::response_404(){
@@ -195,7 +269,7 @@ string http_con::get_content_type(string path){
     else if (strcmp(ext, ".jpg") == 0) {content_type="image/jpeg";file_open_mode=1;}
     else if (strcmp(ext, ".gif") == 0) {content_type="image/gif";file_open_mode=1;}
     else if (strcmp(ext, ".ico") == 0) {content_type="image/x-icon";file_open_mode=1;}
-    else content_type="application/octet-stream";
+    else content_type="text/plain";
     
     return content_type;
 }

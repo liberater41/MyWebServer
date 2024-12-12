@@ -30,6 +30,7 @@ private:
     void process_write(RESPONSE_MODE resp);
     void response_GET();
     void response_POST();
+    void handle_login();
     void response_404();
     void response_405();
     void response_403();
