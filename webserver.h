@@ -24,6 +24,7 @@ public:
     void threadpool_init();
     void start();
     void loop();
+    void discon(int client_fd,int client_port);
 public:
     
 private:

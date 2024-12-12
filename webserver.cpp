@@ -1,5 +1,5 @@
 #include <arpa/inet.h>
-
+#include <unistd.h>
 #include "webserver.h"
 #include "log/log.h"
 
@@ -99,7 +99,7 @@ void WebServer::loop(){
                     Log::LOG_ERROR("accept client error");
                     continue;
                 }
-                m_clients[client_fd].init(client_fd);
+                m_clients[client_fd].init(client_fd,m_con_pool);
 
                 epoll_event client_event;
                 client_event.events=EPOLLIN|EPOLLOUT;
@@ -117,6 +117,12 @@ void WebServer::loop(){
             }
         }
     }
+}
+
+void WebServer::discon(int client_fd,int client_port){
+    epoll_ctl(m_epoll_fd,EPOLL_CTL_DEL,client_fd,nullptr);
+    close(client_fd);
+    Log::LOG_INFO("client %d is closed",client_port);
 }
     
 WebServer::~WebServer(){
